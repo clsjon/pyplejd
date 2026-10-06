@@ -153,6 +153,11 @@ class PlejdManager:
         return timedelta(minutes=3)
 
     async def ping(self, retry=True):
+        """Connect to the mesh if needed and send a keep-alive.
+
+        Returns True when the mesh is connected and answered. Callers that
+        run their own retry/backoff loop should pass retry=False.
+        """
         retval = await self.mesh.ping()
         if not retval and retry:
             await asyncio.sleep(30)
@@ -177,5 +182,7 @@ class PlejdManager:
             if hw.blacklisted and hw.is_gateway:
                 reconnect = True
         if reconnect:
+            # Dropping the connection notifies the connection monitor, which
+            # schedules the reconnect. Try once right away as well.
             await self.mesh.disconnect()
-        await self.ping()
+        await self.ping(retry=False)
